@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Push ~/Developer/keys into Secret hermes/hermes-keys, then verify the
+# cluster copy byte-for-byte. Run by launchd via watchexec on every write
+# (laptop/com.ash4d.hermes-keys-sync.plist), and safe to run by hand.
+#
+# Secret keys cannot contain '/', so <service>/<file> is stored as
+# <service>__<file>; the keys-tree sidecar in the Hermes pod turns that back
+# into /etc/hermes-keys/<service>/<file>.
+#
+# Server-side apply on purpose: client-side apply writes a
+# last-applied-configuration annotation, and a 150K+ Secret overflows the
+# 256K annotation limit.
+set -euo pipefail
+
+KEYS=${KEYS:-$HOME/Developer/keys}
+NS=hermes
+SECRET=hermes-keys
+CONTEXTS=(sdf1 sdf1-ts)   # LAN first, Tailscale when away from home
+
+log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S')" "$*"; }
+notify() { osascript -e "display notification \"$1\" with title \"hermes-keys-sync\"" >/dev/null 2>&1 || true; }
+
+ctx=""
+for c in "${CONTEXTS[@]}"; do
+  if kubectl --context "$c" --request-timeout=5s get ns "$NS" >/dev/null 2>&1; then ctx=$c; break; fi
+done
+if [ -z "$ctx" ]; then
+  log "FAIL cluster unreachable on ${CONTEXTS[*]}; will retry on next change"
+  exit 1
+fi
+
+args=()
+while IFS= read -r -d '' f; do
+  rel=${f#"$KEYS"/}
+  args+=("--from-file=${rel//\//__}=$f")
+done < <(fd -t f -H -E .DS_Store -0 . "$KEYS" | sort -z)
+
+kubectl --context "$ctx" -n "$NS" create secret generic "$SECRET" "${args[@]}" \
+    --dry-run=client -o yaml \
+  | kubectl --context "$ctx" apply --server-side --force-conflicts \
+      --field-manager=hermes-keys-sync -f - >/dev/null
+
+# Verify: hash of every file as the cluster holds it vs the laptop copy.
+local_sums=$(cd "$KEYS" && fd -t f -H -E .DS_Store . | sort | while read -r rel; do
+  printf '%s %s\n' "${rel//\//__}" "$(shasum -a 256 "$rel" | cut -d' ' -f1)"; done)
+cluster_sums=$(kubectl --context "$ctx" -n "$NS" get secret "$SECRET" -o json \
+  | jq -r '.data | to_entries[] | "\(.key) \(.value)"' | sort \
+  | while read -r k v; do printf '%s %s\n' "$k" "$(printf '%s' "$v" | base64 -d | shasum -a 256 | cut -d' ' -f1)"; done)
+
+if [ "$local_sums" = "$cluster_sums" ]; then
+  log "OK $(printf '%s\n' "$local_sums" | wc -l | tr -d ' ') files synced via $ctx"
+else
+  log "FAIL cluster copy differs from laptop:"
+  diff <(printf '%s\n' "$local_sums") <(printf '%s\n' "$cluster_sums") || true
+  notify "Keys sync to Hermes FAILED verification"
+  exit 1
+fi

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Watches ~/Developer/keys and runs hermes-keys-sync on every write.
+     watchexec also runs it once at start, so a login or reload catches up
+     on anything changed while the watcher was down.
+     Install: laptop/install.sh -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ash4d.hermes-keys-sync</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/watchexec</string>
+    <string>--watch</string>
+    <string>__HOME__/Developer/keys</string>
+    <string>--ignore</string>
+    <string>**/.DS_Store</string>
+    <string>--no-vcs-ignore</string>
+    <string>--debounce</string>
+    <string>5s</string>
+    <string>--on-busy-update</string>
+    <string>queue</string>
+    <string>--</string>
+    <string>__HOME__/.local/bin/hermes-keys-sync</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key>
+    <string>__HOME__</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>30</integer>
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/hermes-keys-sync.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/hermes-keys-sync.log</string>
+</dict>
+</plist>

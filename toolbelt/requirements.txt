@@ -10,7 +10,6 @@ pillow
 requests
 # Music: MIDI files and audio analysis (Rick, 2026-09-25)
 mido
-miditoolkit
 soundfile
 librosa
 av

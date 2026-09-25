@@ -29,7 +29,7 @@ done
 "$PY" - <<'EOF' || fail=1
 import importlib, sys
 mods = ["docx", "pptx", "yaml", "pypdf", "numpy", "PIL", "requests",
-        "mido", "miditoolkit", "soundfile", "librosa", "av"]
+        "mido", "soundfile", "librosa", "av"]
 bad = []
 for m in mods:
     try:

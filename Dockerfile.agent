@@ -1,0 +1,36 @@
+# Hermes agent with the ash4d toolbelt layered on the pinned upstream image.
+# Bump UPSTREAM to the new digest on each upstream release and rebuild.
+ARG UPSTREAM=docker.io/nousresearch/hermes-agent@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7
+
+FROM debian:13.4 AS toolbelt
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+COPY toolbelt/fetch.sh /fetch.sh
+RUN bash /fetch.sh
+
+FROM ${UPSTREAM}
+USER root
+
+COPY toolbelt/apt-packages.txt /tmp/toolbelt-apt.txt
+RUN apt-get update \
+ && grep -vE '^[[:space:]]*(#|$)' /tmp/toolbelt-apt.txt \
+    | xargs apt-get install -y --no-install-recommends \
+ && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+ && rm -rf /var/lib/apt/lists/* /tmp/toolbelt-apt.txt
+
+COPY --from=toolbelt /out/bin/ /usr/local/bin/
+
+# Freeze what Hermes already ships as constraints so the extra libraries can
+# never silently move a Hermes dependency; a conflict fails the build instead.
+COPY toolbelt/requirements.txt /tmp/toolbelt-req.txt
+RUN uv pip freeze --python /opt/hermes/.venv/bin/python | grep -vE '^-e | @ ' > /tmp/constraints.txt \
+ && uv pip install --no-cache --python /opt/hermes/.venv/bin/python \
+      -c /tmp/constraints.txt -r /tmp/toolbelt-req.txt \
+ && rm -f /tmp/toolbelt-req.txt /tmp/constraints.txt
+
+COPY toolbelt/ssh_config /etc/ssh/ssh_config.d/hermes.conf
+COPY --chmod=0755 toolbelt/toolcheck.sh /usr/local/bin/toolcheck
+
+LABEL org.opencontainers.image.source="https://github.com/darthzen/hermes-image" \
+      org.opencontainers.image.description="Hermes agent + ash4d toolbelt"

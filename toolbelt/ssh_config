@@ -1,0 +1,18 @@
+# Installed as /etc/ssh/ssh_config.d/hermes.conf.
+# The key and known_hosts come from Secret hermes-ssh, copied into the
+# /etc/hermes-ssh emptyDir by an init container so they are owned by uid 10000
+# with mode 0600 (ssh refuses a group-readable key).
+Host sdf1
+  HostName 192.168.7.149
+  User root
+
+Host pecan pecan.ash4d.com
+  HostName 192.168.7.143
+  User root
+
+Host *
+  IdentityFile /etc/hermes-ssh/id_ed25519
+  UserKnownHostsFile /etc/hermes-ssh/known_hosts
+  StrictHostKeyChecking yes
+  BatchMode yes
+  ConnectTimeout 10

@@ -1,0 +1,42 @@
+# Hermes WebUI with the ash4d toolbelt layered on the pinned upstream image.
+# Terminal commands from WebUI chats run in this container, so it needs the
+# same tools as the agent.
+ARG UPSTREAM=ghcr.io/nesquena/hermes-webui@sha256:daa38097ab602e4e7af757a8b1f2e3107ae50074634ff6fa58b8db830ee9da13
+
+FROM debian:13.4 AS toolbelt
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+COPY toolbelt/fetch.sh /fetch.sh
+RUN bash /fetch.sh
+
+FROM ${UPSTREAM}
+USER root
+
+COPY toolbelt/apt-packages.txt /tmp/toolbelt-apt.txt
+RUN apt-get update \
+ && grep -vE '^[[:space:]]*(#|$)' /tmp/toolbelt-apt.txt \
+    | xargs apt-get install -y --no-install-recommends \
+ && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+ && rm -rf /var/lib/apt/lists/* /tmp/toolbelt-apt.txt
+
+COPY --from=toolbelt /out/bin/ /usr/local/bin/
+
+# The upstream init script reuses /app/venv when it exists ("fast restart")
+# and only rsyncs /apptoo into /app, so a venv built here survives startup.
+# It is owned by 10000:10000 because lab-fleet sets WANTED_UID/GID=10000 and
+# init re-ids hermeswebui to that. Change both together.
+COPY toolbelt/requirements.txt /tmp/toolbelt-req.txt
+RUN uv venv /app/venv --python /usr/local/bin/python3 \
+ && uv pip install --no-cache --python /app/venv/bin/python -r /apptoo/requirements.txt \
+ && uv pip freeze --python /app/venv/bin/python | grep -vE '^-e | @ ' > /tmp/constraints.txt \
+ && uv pip install --no-cache --python /app/venv/bin/python \
+      -c /tmp/constraints.txt -r /tmp/toolbelt-req.txt \
+ && chown -R 10000:10000 /app/venv \
+ && rm -f /tmp/toolbelt-req.txt /tmp/constraints.txt
+
+COPY toolbelt/ssh_config /etc/ssh/ssh_config.d/hermes.conf
+COPY --chmod=0755 toolbelt/toolcheck.sh /usr/local/bin/toolcheck
+
+LABEL org.opencontainers.image.source="https://github.com/darthzen/hermes-image" \
+      org.opencontainers.image.description="Hermes WebUI + ash4d toolbelt"

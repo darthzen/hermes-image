@@ -1,0 +1,16 @@
+# Python libraries baked into the agent venv (/opt/hermes/.venv) and the
+# webui venv (/app/venv). Chosen from the 90-day usage profile (2026-09-25)
+# and the ModuleNotFound errors in Hermes' own tool history.
+python-docx
+python-pptx
+pyyaml
+pypdf
+numpy
+pillow
+requests
+# Music: MIDI files and audio analysis (Rick, 2026-09-25)
+mido
+miditoolkit
+soundfile
+librosa
+av

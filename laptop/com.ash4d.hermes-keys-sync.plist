@@ -16,6 +16,9 @@
     <string>--ignore</string>
     <string>**/.DS_Store</string>
     <string>--no-vcs-ignore</string>
+    <string>--no-discover-ignore</string>
+    <string>--project-origin</string>
+    <string>__HOME__/Developer/keys</string>
     <string>--debounce</string>
     <string>5s</string>
     <string>--on-busy-update</string>
@@ -30,6 +33,10 @@
     <key>HOME</key>
     <string>__HOME__</string>
   </dict>
+  <!-- Without these, launchd's cwd of / makes watchexec hunt for ignore
+       files from the filesystem root and it never gets to watching. -->
+  <key>WorkingDirectory</key>
+  <string>__HOME__/Developer/keys</string>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>

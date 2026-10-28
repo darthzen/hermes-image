@@ -1,0 +1,8 @@
+# Mirror of hermes-agent's [tool.uv] override-dependencies (v0.22.5).
+# The webui's init runs `uv pip install -e <agent>[all]`, which does not read
+# another project's [tool.uv], so without these the agent's own deps are
+# unsatisfiable on Python 3.14 (browser-harness pins pillow==12.3.0, the agent
+# pins Pillow==13.0.0). Re-sync from the agent's pyproject.toml on each bump.
+pynacl>=1.6,<1.7
+cryptography==50.0.1
+Pillow==13.0.0

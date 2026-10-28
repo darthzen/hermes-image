@@ -34,6 +34,10 @@ COPY --from=toolbelt /out/bin/ /usr/local/bin/
 # UV_PYTHON keeps docker_init's own uv calls on 3.14 too.
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python \
     UV_PYTHON=3.14
+# The agent's [tool.uv] overrides, which docker_init's editable agent install
+# would otherwise ignore (see the file's header). uv reads UV_OVERRIDE.
+COPY toolbelt/webui-agent-overrides.txt /opt/uv-overrides.txt
+ENV UV_OVERRIDE=/opt/uv-overrides.txt
 COPY toolbelt/requirements.txt /tmp/toolbelt-req.txt
 RUN uv python install 3.14 \
  && chmod -R a+rX /opt/uv-python \

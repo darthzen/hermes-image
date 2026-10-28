@@ -1,6 +1,6 @@
 # Hermes agent with the ash4d toolbelt layered on the pinned upstream image.
 # Bump UPSTREAM to the new digest on each upstream release and rebuild.
-ARG UPSTREAM=docker.io/nousresearch/hermes-agent@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7
+ARG UPSTREAM=docker.io/nousresearch/hermes-agent@sha256:9c5561579f3ffdf333401797094ac3a743738d6c25d40f4331c7bf77b694238d
 
 FROM debian:13.4 AS toolbelt
 RUN apt-get update \
@@ -23,9 +23,15 @@ COPY --from=toolbelt /out/bin/ /usr/local/bin/
 
 # Freeze what Hermes already ships as constraints so the extra libraries can
 # never silently move a Hermes dependency; a conflict fails the build instead.
+# Since upstream v0.22 uv is not on PATH: Hermes' pm owns the pinned uv
+# (pm/lock.json). Ask pm for it, fall back to a filesystem search, and link
+# it onto PATH so the agent's shell and toolcheck still find uv.
 COPY toolbelt/requirements.txt /tmp/toolbelt-req.txt
-RUN uv pip freeze --python /opt/hermes/.venv/bin/python | grep -vE '^-e | @ ' > /tmp/constraints.txt \
- && uv pip install --no-cache --python /opt/hermes/.venv/bin/python \
+RUN UV="$(cd /opt/hermes && python3 -c 'from pm import installed_package; print(installed_package("uv").binary)' 2>/dev/null \
+          || find /opt/hermes -type f -name uv -perm -u+x 2>/dev/null | head -1)" \
+ && test -x "$UV" && echo "using uv at $UV" && ln -sf "$UV" /usr/local/bin/uv \
+ && "$UV" pip freeze --python /opt/hermes/.venv/bin/python | grep -vE '^-e | @ ' > /tmp/constraints.txt \
+ && "$UV" pip install --no-cache --python /opt/hermes/.venv/bin/python \
       -c /tmp/constraints.txt -r /tmp/toolbelt-req.txt \
  && rm -f /tmp/toolbelt-req.txt /tmp/constraints.txt
 

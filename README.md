@@ -39,9 +39,9 @@ only on Debian/Ubuntu. Layering keeps upgrades to a one-line digest bump.
 
 ```bash
 ~/.claude/skills/lab-image-build/scripts/kaniko-build.sh --repo darthzen/hermes-image \
-  --image hermes-agent --tag 0.21.5-ash4d.1 --dockerfile Dockerfile.agent
+  --image hermes-agent --tag 0.22.5-ash4d.1 --dockerfile Dockerfile.agent
 ~/.claude/skills/lab-image-build/scripts/kaniko-build.sh --repo darthzen/hermes-image \
-  --image hermes-webui --tag 0.52.379-ash4d.1 --dockerfile Dockerfile.webui
+  --image hermes-webui --tag 0.52.544-ash4d.1 --dockerfile Dockerfile.webui
 ```
 
 4. Update both agent image references in lab-fleet together (the main

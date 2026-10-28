@@ -26,8 +26,18 @@ COPY --from=toolbelt /out/bin/ /usr/local/bin/
 # and only rsyncs /apptoo into /app, so a venv built here survives startup.
 # It is owned by 10000:10000 because lab-fleet sets WANTED_UID/GID=10000 and
 # init re-ids hermeswebui to that. Change both together.
+# Python 3.14, not the image's 3.12: since hermes-agent v0.21.6 ~46 core agent
+# deps (python-dotenv, openai, pydantic, ...) carry python_version >= '3.14'
+# markers, so a 3.12 venv silently drops them and the webui cannot import the
+# agent (nesquena/hermes-webui#8113; upstream image fix not yet published).
+# uv-managed interpreter in a world-readable dir so UID 10000 can run it;
+# UV_PYTHON keeps docker_init's own uv calls on 3.14 too.
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python \
+    UV_PYTHON=3.14
 COPY toolbelt/requirements.txt /tmp/toolbelt-req.txt
-RUN uv venv /app/venv --python /usr/local/bin/python3 \
+RUN uv python install 3.14 \
+ && chmod -R a+rX /opt/uv-python \
+ && uv venv /app/venv --python 3.14 \
  && uv pip install --no-cache --python /app/venv/bin/python -r /apptoo/requirements.txt \
  && uv pip freeze --python /app/venv/bin/python | grep -vE '^-e | @ ' > /tmp/constraints.txt \
  && uv pip install --no-cache --python /app/venv/bin/python \

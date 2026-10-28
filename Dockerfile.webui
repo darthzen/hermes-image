@@ -1,7 +1,7 @@
 # Hermes WebUI with the ash4d toolbelt layered on the pinned upstream image.
 # Terminal commands from WebUI chats run in this container, so it needs the
 # same tools as the agent.
-ARG UPSTREAM=ghcr.io/nesquena/hermes-webui@sha256:daa38097ab602e4e7af757a8b1f2e3107ae50074634ff6fa58b8db830ee9da13
+ARG UPSTREAM=ghcr.io/nesquena/hermes-webui@sha256:03e6d1dc9ebabbb53a6b270dc11395db00146f63e76ec8f51686f1e89a0be0a4
 
 FROM debian:13.4 AS toolbelt
 RUN apt-get update \

@@ -1,7 +1,7 @@
 # Hermes WebUI with the ash4d toolbelt layered on the pinned upstream image.
 # Terminal commands from WebUI chats run in this container, so it needs the
 # same tools as the agent.
-ARG UPSTREAM=ghcr.io/nesquena/hermes-webui@sha256:03e6d1dc9ebabbb53a6b270dc11395db00146f63e76ec8f51686f1e89a0be0a4
+ARG UPSTREAM=ghcr.io/nesquena/hermes-webui@sha256:170482ae4ae3e9a27c98e24f66447be0904c1d7105844ef44dbf598981d3db78
 
 FROM debian:13.4 AS toolbelt
 RUN apt-get update \
@@ -29,7 +29,9 @@ COPY --from=toolbelt /out/bin/ /usr/local/bin/
 # Python 3.14, not the image's 3.12: since hermes-agent v0.21.6 ~46 core agent
 # deps (python-dotenv, openai, pydantic, ...) carry python_version >= '3.14'
 # markers, so a 3.12 venv silently drops them and the webui cannot import the
-# agent (nesquena/hermes-webui#8113; upstream image fix not yet published).
+# agent (nesquena/hermes-webui#8113). Upstream fixed this in 0.52.667+ (#8457):
+# docker_init now reuses a venv whose interpreter satisfies the agent's
+# requires-python, so this pre-built 3.14 venv is kept as-is.
 # uv-managed interpreter in a world-readable dir so UID 10000 can run it;
 # UV_PYTHON keeps docker_init's own uv calls on 3.14 too.
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python \

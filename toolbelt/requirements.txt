@@ -13,3 +13,7 @@ mido
 soundfile
 librosa
 av
+# Hindsight memory-provider plugin deps; Hermes never auto-installs plugin
+# pip deps (Rick, 2026-11-21)
+hindsight-client>=0.10.1,<2
+hindsight-embed>=0.10.3,<2
